@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>COSMOS — Sudhanshu Yembadwar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & ROOT
+============================================================ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --bg:#020209;
+  --glass:rgba(255,255,255,0.05);
+  --glass-border:rgba(255,255,255,0.1);
+  --glass-border-bright:rgba(255,255,255,0.2);
+  --text:#e8e8ff;
+  --text-dim:rgba(232,232,255,0.45);
+  --text-muted:rgba(232,232,255,0.22);
+  --accent:#7c3aed;
+  --accent2:#ec4899;
+}
+
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;cursor:none}
+
+/* ============================================================
+   CUSTOM CURSOR
+============================================================ */
+#cursor{
+  position:fixed;width:18px;height:18px;border-radius:50%;
+  background:rgba(255,255,255,0.95);
+  box-shadow:0 0 18px rgba(255,255,255,0.9),0 0 40px rgba(124,58,237,0.6);
+  pointer-events:none;z-index:9999;
+  transform:translate(-50%,-50%);
+  transition:width .2s cubic-bezier(.34,1.56,.64,1),height .2s cubic-bezier(.34,1.56,.64,1),background .2s;
+  mix-blend-mode:screen;will-change:left,top;
+}
+#cursorDot{
+  position:fixed;width:5px;height:5px;border-radius:50%;
+  background:#a78bfa;pointer-events:none;z-index:9998;
+  transform:translate(-50%,-50%);
+  transition:left .12s ease,top .12s ease;
+}
+
+/* ============================================================
+   INTRO SCREEN
+============================================================ */
+#intro{
+  position:fixed;inset:0;background:#000;z-index:1000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;
+  transition:opacity 1.8s cubic-bezier(.4,0,.2,1);
+}
+#intro.out{opacity:0;pointer-events:none}
+.intro-logo{
+  font-family:'Orbitron',sans-serif;font-size:clamp(2rem,6vw,4.5rem);
+  font-weight:900;letter-spacing:.18em;text-transform:uppercase;
+  background:linear-gradient(135deg,#fff 0%,#a78bfa 50%,#ec4899 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  opacity:0;animation:introFade 1.2s ease .4s forwards;
+}
+.intro-sub{
+  font-family:'Orbitron',sans-serif;font-size:clamp(.55rem,.9vw,.72rem);
+  letter-spacing:.45em;text-transform:uppercase;color:rgba(255,255,255,.25);
+  opacity:0;animation:introFade .8s ease 1s forwards;
+}
+.intro-bar{
+  width:160px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(124,58,237,.8),transparent);
+  opacity:0;animation:introFade .8s ease 1.2s forwards;
+}
+@keyframes introFade{to{opacity:1}}
+
+/* ============================================================
+   SPACE CANVAS (background)
+============================================================ */
+#spaceCanvas{position:fixed;inset:0;z-index:0}
+
+/* ============================================================
+   UNIVERSE LAYER (planets + DOM)
+============================================================ */
+#universe{position:fixed;inset:0;z-index:2;opacity:0;transition:opacity 2s ease;pointer-events:none}
+#universe.on{opacity:1;pointer-events:all}
+
+/* ============================================================
+   PLANETS
+============================================================ */
+.planet-wrap{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  cursor:none;
+}
+.planet{
+  border-radius:50%;position:relative;
+  transition:filter .35s ease;will-change:transform;
+}
+.planet-wrap:hover .planet{filter:brightness(1.35) saturate(1.2)}
+
+/* Center star pulsing ring */
+.star-ring{
+  position:absolute;top:50%;left:50%;border-radius:50%;
+  border:1px solid rgba(255,215,0,.3);
+  transform:translate(-50%,-50%);
+  animation:ringExpand 3s ease-out infinite;pointer-events:none;
+}
+.star-ring:nth-child(2){animation-delay:1s}
+.star-ring:nth-child(3){animation-delay:2s}
+@keyframes ringExpand{
+  0%{width:100%;height:100%;opacity:.7}
+  100%{width:260%;height:260%;opacity:0}
+}
+
+/* Saturn rings (IIoT Sentinel) */
+.orbit-ring{
+  position:absolute;top:50%;left:50%;border-radius:50%;
+  border-style:solid;pointer-events:none;
+  animation:orbitSpin 9s linear infinite;
+}
+@keyframes orbitSpin{
+  from{transform:translate(-50%,-50%) rotateX(72deg) rotateZ(0deg)}
+  to{transform:translate(-50%,-50%) rotateX(72deg) rotateZ(360deg)}
+}
+
+/* Planet label */
+.planet-label{
+  position:absolute;top:calc(100% + 16px);left:50%;
+  transform:translateX(-50%);
+  font-family:'Orbitron',sans-serif;font-size:.58rem;
+  letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(255,255,255,.55);white-space:nowrap;
+  text-shadow:0 0 14px rgba(255,255,255,.4);
+  pointer-events:none;
+  transition:color .3s,text-shadow .3s;
+}
+.planet-wrap:hover .planet-label{color:rgba(255,255,255,.9);text-shadow:0 0 20px rgba(255,255,255,.7)}
+
+/* ============================================================
+   INFO CARD (planet click)
+============================================================ */
+#cardOverlay{
+  position:fixed;inset:0;z-index:50;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(2,2,9,.72);backdrop-filter:blur(12px);
+  opacity:0;pointer-events:none;
+  transition:opacity .5s ease;
+}
+#cardOverlay.on{opacity:1;pointer-events:all}
+
+.card{
+  background:rgba(8,8,24,.85);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:32px;padding:48px 52px;
+  max-width:500px;width:92%;position:relative;
+  backdrop-filter:blur(40px);
+  box-shadow:0 0 80px rgba(0,0,0,.6),0 0 200px rgba(124,58,237,.1),inset 0 1px 0 rgba(255,255,255,.07);
+  transform:translateY(24px) scale(.93);
+  transition:transform .5s cubic-bezier(.34,1.56,.64,1);
+}
+#cardOverlay.on .card{transform:translateY(0) scale(1)}
+
+.card-close{
+  position:absolute;top:20px;right:20px;
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;
+  cursor:none;font-size:15px;color:var(--text-dim);
+  transition:all .2s ease;
+}
+.card-close:hover{background:rgba(255,255,255,.1);color:var(--text)}
+
+.card-orb{
+  width:68px;height:68px;border-radius:50%;margin-bottom:28px;
+  box-shadow:0 0 30px var(--card-glow);
+}
+
+.card-eyebrow{
+  font-family:'Orbitron',sans-serif;font-size:.6rem;
+  letter-spacing:.3em;text-transform:uppercase;
+  color:var(--text-muted);margin-bottom:10px;
+}
+.card-title{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(1.3rem,3vw,1.9rem);font-weight:700;
+  line-height:1.15;margin-bottom:16px;
+}
+.card-desc{
+  font-size:.9rem;font-weight:300;color:var(--text-dim);
+  line-height:1.8;margin-bottom:36px;
+}
+.card-links{display:flex;gap:12px;flex-wrap:wrap}
+
+.clink{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:12px 24px;border-radius:100px;
+  font-size:.8rem;font-weight:500;text-decoration:none;
+  cursor:none;transition:all .25s ease;
+}
+.clink.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+.clink.secondary{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text)}
+.clink:hover{transform:translateY(-2px);opacity:.82}
+
+/* ============================================================
+   ADD STAR BUTTON
+============================================================ */
+#addStarBtn{
+  position:fixed;bottom:34px;left:50%;
+  transform:translateX(-50%);
+  z-index:30;
+  background:rgba(10,10,30,.7);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:100px;padding:14px 30px;
+  color:var(--text);
+  font-family:'Orbitron',sans-serif;font-size:.65rem;
+  letter-spacing:.18em;text-transform:uppercase;
+  cursor:none;backdrop-filter:blur(20px);
+  transition:all .3s ease;
+  display:flex;align-items:center;gap:12px;
+  opacity:0;
+  box-shadow:0 0 40px rgba(124,58,237,.15);
+}
+#addStarBtn.on{opacity:1}
+#addStarBtn:hover{
+  background:rgba(124,58,237,.15);
+  border-color:rgba(124,58,237,.5);
+  box-shadow:0 0 50px rgba(124,58,237,.3);
+}
+.star-spin{display:inline-block;animation:spin 5s linear infinite;color:#a78bfa}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ============================================================
+   STAR MODAL
+============================================================ */
+#starModal{
+  position:fixed;inset:0;z-index:60;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(2,2,9,.78);backdrop-filter:blur(12px);
+  opacity:0;pointer-events:none;
+  transition:opacity .4s ease;
+}
+#starModal.on{opacity:1;pointer-events:all}
+
+.modal-box{
+  background:rgba(8,8,24,.92);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:32px;padding:48px;
+  width:92%;max-width:430px;
+  backdrop-filter:blur(40px);
+  box-shadow:0 0 100px rgba(124,58,237,.2),inset 0 1px 0 rgba(255,255,255,.06);
+  transform:translateY(30px);
+  transition:transform .45s cubic-bezier(.34,1.56,.64,1);
+}
+#starModal.on .modal-box{transform:translateY(0)}
+
+.modal-title{
+  font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:700;
+  margin-bottom:8px;
+  background:linear-gradient(135deg,#fff,#a78bfa);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.modal-sub{font-size:.84rem;color:var(--text-dim);margin-bottom:28px;line-height:1.7}
+
+.mfield{
+  width:100%;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:14px;padding:14px 18px;
+  color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:.9rem;
+  outline:none;margin-bottom:14px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.mfield:focus{border-color:rgba(124,58,237,.55);box-shadow:0 0 20px rgba(124,58,237,.1)}
+.mfield::placeholder{color:var(--text-muted)}
+
+.color-label{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px}
+.color-row{display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap}
+.col-dot{
+  width:28px;height:28px;border-radius:50%;cursor:none;
+  border:2px solid transparent;transition:all .2s ease;
+}
+.col-dot.sel{border-color:#fff;transform:scale(1.22);box-shadow:0 0 12px currentColor}
+
+.msubmit{
+  width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none;border-radius:14px;padding:15px;
+  color:#fff;font-family:'Orbitron',sans-serif;
+  font-size:.72rem;letter-spacing:.12em;font-weight:700;
+  cursor:none;transition:opacity .2s ease,transform .2s ease;
+}
+.msubmit:hover:not(:disabled){opacity:.85;transform:translateY(-1px)}
+.msubmit:disabled{opacity:.4;transform:none}
+
+.mclose{
+  float:right;background:none;border:none;
+  color:var(--text-dim);font-size:22px;cursor:none;
+  line-height:1;margin-top:-4px;
+  transition:color .2s;
+}
+.mclose:hover{color:var(--text)}
+
+/* ============================================================
+   TOOLTIP
+============================================================ */
+#tooltip{
+  position:fixed;z-index:200;pointer-events:none;
+  background:rgba(8,8,24,.92);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;padding:8px 16px;
+  font-size:.78rem;color:var(--text);
+  backdrop-filter:blur(12px);
+  opacity:0;transform:translate(-50%,-130%);
+  transition:opacity .2s ease;
+  white-space:nowrap;
+}
+#tooltip.on{opacity:1}
+
+/* ============================================================
+   NAV
+============================================================ */
+#nav{
+  position:fixed;top:0;left:0;right:0;z-index:30;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:28px 32px;
+  opacity:0;transition:opacity .8s ease;
+}
+#nav.on{opacity:1}
+
+.nav-logo{
+  font-family:'Orbitron',sans-serif;font-size:.65rem;
+  letter-spacing:.3em;text-transform:uppercase;
+  color:rgba(255,255,255,.35);
+}
+
+.nav-right{display:flex;align-items:center;gap:14px}
+
+#soundBtn{
+  width:42px;height:42px;border-radius:50%;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;
+  cursor:none;font-size:16px;
+  transition:all .2s ease;backdrop-filter:blur(12px);
+}
+#soundBtn:hover{background:rgba(255,255,255,.09)}
+
+/* ============================================================
+   STAR COUNT
+============================================================ */
+#starCount{
+  position:fixed;bottom:34px;right:32px;z-index:30;
+  font-family:'Orbitron',sans-serif;font-size:.58rem;
+  letter-spacing:.18em;text-transform:uppercase;
+  color:var(--text-muted);text-align:right;
+  opacity:0;transition:opacity .8s ease;
+  line-height:1.7;
+}
+#starCount.on{opacity:1}
+
+/* ============================================================
+   MOBILE
+============================================================ */
+@media(max-width:600px){
+  .card{padding:30px 24px;border-radius:24px}
+  .card-title{font-size:1.2rem}
+  .modal-box{padding:30px 24px}
+  #nav{padding:20px 20px}
+  #addStarBtn{bottom:22px;padding:12px 22px;font-size:.6rem}
+  #starCount{bottom:22px;right:20px}
+}
+</style>
+</head>
+<body>
+
+<!-- Custom Cursor -->
+<div id="cursor"></div>
+<div id="cursorDot"></div>
+
+<!-- Intro Screen -->
+<div id="intro">
+  <div class="intro-logo">Cosmos</div>
+  <div class="intro-bar"></div>
+  <div class="intro-sub">Sudhanshu Yembadwar · Universe Portfolio</div>
+</div>
+
+<!-- Space Canvas -->
+<canvas id="spaceCanvas"></canvas>
+
+<!-- Universe DOM Layer -->
+<div id="universe"></div>
+
+<!-- Nav -->
+<div id="nav">
+  <div class="nav-logo">COSMOS · Sudhanshu Yembadwar</div>
+  <div class="nav-right">
+    <div id="soundBtn" onclick="toggleSound()" title="Toggle Sound">🔇</div>
+  </div>
+</div>
+
+<!-- Planet Info Card -->
+<div id="cardOverlay" onclick="handleOverlayClick(event)">
+  <div class="card" onclick="event.stopPropagation()">
+    <div class="card-close" onclick="closeCard()">✕</div>
+    <div class="card-orb" id="cardOrb"></div>
+    <div class="card-eyebrow" id="cardEye"></div>
+    <h2 class="card-title" id="cardTitle"></h2>
+    <p class="card-desc" id="cardDesc"></p>
+    <div class="card-links" id="cardLinks"></div>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div id="tooltip"></div>
+
+<!-- Add Star Button -->
+<button id="addStarBtn" onclick="openModal()">
+  <span class="star-spin">✦</span>
+  Add Your Star to the Cosmos
+</button>
+
+<!-- Star Count -->
+<div id="starCount">
+  <div id="countNum">— STARS</div>
+  <div style="color:var(--text-muted);font-size:.5rem;letter-spacing:.1em">IN THE COSMOS</div>
+</div>
+
+<!-- Star Modal -->
+<div id="starModal" onclick="handleModalClick(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <button class="mclose" onclick="closeModal()">×</button>
+    <h3 class="modal-title">Become a Star ✦</h3>
+    <p class="modal-sub">Add yourself to the cosmos. Your star will shine here forever — visible to everyone who visits.</p>
+    <input class="mfield" id="mName" type="text" placeholder="Your name" maxlength="28" autocomplete="off">
+    <input class="mfield" id="mLink" type="text" placeholder="Your link — portfolio, GitHub… (optional)" maxlength="250" autocomplete="off">
+    <div class="color-label">Choose your star color</div>
+    <div class="color-row" id="colorRow"></div>
+    <button class="msubmit" id="mBtn" onclick="submitStar()">Launch My Star 🚀</button>
+  </div>
+</div>
+
+<script>
+/* ===========================================================
+   COSMOS — Living Universe Portfolio
+   Sudhanshu Yembadwar · SVPCET Nagpur · IIoT Engineer
+=========================================================== */
+
+// ── SUPABASE CONFIG ──
+const SB_URL = 'https://tluqpjgvpvtxmpjqkgxn.supabase.co';
+const SB_KEY = 'REPLACE_WITH_YOUR_FULL_PUBLISHABLE_KEY'; // paste full key here
+
+// ── PLANET DATA ──
+const PLANETS = [
+  {
+    id:'self', name:'Sudhanshu', eyebrow:'THE ARCHITECT',
+    desc:'First year IIoT engineer at SVPCET Nagpur. 3 live projects shipped. Building the future one commit at a time. Not loud — just dangerous.',
+    size:92,
+    bg:'radial-gradient(circle at 36% 30%, #fffbf0, #ffd700 38%, #ff8c00 68%, #7a1500)',
+    glow:'0 0 55px rgba(255,200,0,.95), 0 0 110px rgba(255,150,0,.5), 0 0 170px rgba(255,80,0,.2)',
+    glowColor:'rgba(255,200,0,.7)',
+    orbitR:0, speed:0, angle:0,
+    isCenter:true, links:[]
+  },
+  {
+    id:'aria', name:'ARIA Diagnostics', eyebrow:'PROJECT · AI/IIOT',
+    desc:'AI-powered industrial fault diagnostics using local LLM (Ollama). Real-time machine health scoring, failure prediction & natural language chat. Built for the factory floor.',
+    size:54,
+    bg:'radial-gradient(circle at 32% 28%, #ff7a5a, #cc2200 42%, #800000 76%, #250000)',
+    glow:'0 0 30px rgba(200,40,0,.9), 0 0 65px rgba(160,20,0,.45)',
+    glowColor:'rgba(200,40,0,.7)',
+    orbitR:185, speed:.00022, angle:1.1,
+    links:[
+      {label:'🚀 Live Site',url:'https://aria-diagnostics-production.up.railway.app',primary:true},
+      {label:'<> GitHub',url:'https://github.com/sudhanshuyembadwar8-ctrl/aria-diagnostics',primary:false}
+    ]
+  },
+  {
+    id:'sentinel', name:'IIoT Sentinel', eyebrow:'PROJECT · MONITORING',
+    desc:'Industrial IoT monitoring system. Real-time sensor data, anomaly detection, and automated alerts for industrial environments. Always watching.',
+    size:62,
+    bg:'radial-gradient(circle at 36% 28%, #c084fc, #7c3aed 42%, #4c1d95 78%, #0d0022)',
+    glow:'0 0 35px rgba(124,58,237,.9), 0 0 75px rgba(124,58,237,.4)',
+    glowColor:'rgba(124,58,237,.7)',
+    orbitR:295, speed:.00014, angle:3.5,
+    hasRings:true,
+    links:[
+      {label:'🚀 Live Site',url:'https://iiot-sentinel-production.up.railway.app',primary:true},
+      {label:'<> GitHub',url:'https://github.com/sudhanshuyembadwar8-ctrl/iiot-sentinel',primary:false}
+    ]
+  },
+  {
+    id:'moodfm', name:'MoodFM', eyebrow:'PROJECT · AI MUSIC',
+    desc:'Emotion-based music recommender. Type how you feel — any words, any language. AI reads your vibe and finds the perfect soundtrack for your moment. Free for everyone.',
+    size:50,
+    bg:'radial-gradient(circle at 34% 26%, #7dd3fc, #0ea5e9 38%, #0369a1 72%, #001825)',
+    glow:'0 0 28px rgba(14,165,233,.9), 0 0 65px rgba(14,165,233,.38)',
+    glowColor:'rgba(14,165,233,.7)',
+    orbitR:238, speed:.00019, angle:5.0,
+    links:[
+      {label:'🚀 Live Site',url:'https://moodfm.vercel.app',primary:true},
+      {label:'<> GitHub',url:'https://github.com/sudhanshuyembadwar8-ctrl/moodfm',primary:false}
+    ]
+  },
+  {
+    id:'github', name:'GitHub', eyebrow:'DEVELOPER PROFILE',
+    desc:'All projects. All commits. All the evidence. 3 live projects shipped in record time. The journey is just getting started.',
+    size:40,
+    bg:'radial-gradient(circle at 38% 30%, #4b5563, #1f2937 50%, #080d14)',
+    glow:'0 0 18px rgba(100,116,139,.6), 0 0 40px rgba(100,116,139,.22)',
+    glowColor:'rgba(100,116,139,.6)',
+    orbitR:368, speed:.000088, angle:2.3,
+    links:[
+      {label:'👾 Visit Profile',url:'https://github.com/sudhanshuyembadwar8-ctrl',primary:true}
+    ]
+  }
+];
+
+// ── STATE ──
+const canvas = document.getElementById('spaceCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, cx, cy;
+let stars = [], communityStars = [], shootingStar = null;
+let nextShoot = 0;
+let mouse = {x:0,y:0,sx:0,sy:0};
+let par = {x:0,y:0};
+let planets = [];
+let raf, t = 0;
+let cardOpen = false;
+let hoveredCStar = null;
+let selColor = '#ffffff';
+let soundOn = false, audioCtx, masterGain;
+let isMobile = window.innerWidth < 600;
+
+// ── RESIZE ──
+function resize(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  cx = W/2; cy = H/2;
+  isMobile = W < 600;
+  spawnStars();
+  if(planets.length) layoutPlanets();
+}
+window.addEventListener('resize', resize);
+
+// ── CANVAS STARS ──
+function spawnStars(){
+  const n = isMobile ? 380 : 680;
+  stars = [];
+  for(let i=0;i<n;i++){
+    stars.push({
+      x:Math.random()*W, y:Math.random()*H,
+      r:Math.random()*1.4+.25,
+      a:Math.random(),
+      spd:Math.random()*.018+.004,
+      off:Math.random()*Math.PI*2,
+      dep:Math.random()
+    });
+  }
+}
+
+// ── NEBULA ──
+function drawNebula(){
+  const dx=par.x*.012, dy=par.y*.012;
+  const pulse=Math.sin(t*.00025)*.012;
+
+  const neb=[
+    {x:cx-220+dx*.9,  y:cy-160+dy*.9,  r:400, c:'124,58,237',  a:.11},
+    {x:cx+300+dx*1.2, y:cy+160+dy*1.2, r:340, c:'236,72,153',  a:.08},
+    {x:cx-80+dx*.7,   y:cy+280+dy*.7,  r:290, c:'59,130,246',  a:.09},
+    {x:cx+180+dx,     y:cy-200+dy,     r:220, c:'167,139,250', a:.06},
+  ];
+
+  for(const n of neb){
+    const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*(1+pulse));
+    g.addColorStop(0,`rgba(${n.c},${n.a})`);
+    g.addColorStop(.5,`rgba(${n.c},${n.a*.35})`);
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    ctx.arc(n.x,n.y,n.r*(1+pulse),0,Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// ── STARS ──
+function drawStars(){
+  for(const s of stars){
+    const tw=Math.sin(t*s.spd+s.off)*.5+.5;
+    const alpha=.15+tw*.85;
+    const ox=par.x*s.dep*.055;
+    const oy=par.y*s.dep*.055;
+    const col = s.dep<.3 ? `rgba(180,215,255,${alpha})`
+               : s.dep<.65? `rgba(255,255,255,${alpha})`
+               : `rgba(255,248,200,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(s.x+ox,s.y+oy,s.r,0,Math.PI*2);
+    ctx.fillStyle=col;
+    ctx.fill();
+  }
+}
+
+// ── SHOOTING STAR ──
+function tryShoot(){
+  if(shootingStar||Date.now()<nextShoot) return;
+  nextShoot = Date.now() + rnd(22000,38000);
+  const sx = rnd(W*.15,W*.85), ang = rnd(-.28,-.08);
+  shootingStar={
+    x:sx, y:-10,
+    vx:Math.cos(ang)*19,
+    vy:Math.sin(ang)*19+12,
+    life:1, trail:[]
+  };
+}
+function drawShoot(){
+  if(!shootingStar) return;
+  const s=shootingStar;
+  s.trail.push({x:s.x,y:s.y,a:s.life});
+  if(s.trail.length>28) s.trail.shift();
+  for(let i=0;i<s.trail.length;i++){
+    const p=s.trail[i], prog=i/s.trail.length;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,1.5*prog,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,240,${p.a*prog*.75})`;
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.arc(s.x,s.y,2.2,0,Math.PI*2);
+  ctx.fillStyle=`rgba(255,255,240,${s.life})`;
+  ctx.fill();
+  s.x+=s.vx; s.y+=s.vy; s.life-=.017;
+  if(s.life<=0||s.x>W+80||s.y>H+80) shootingStar=null;
+}
+
+// ── COMMUNITY STARS ──
+function drawCommunityStars(){
+  const tip=document.getElementById('tooltip');
+  hoveredCStar=null;
+
+  for(const s of communityStars){
+    const tw=Math.sin(t*.007+s.ph)*.38+.72;
+    const sx=s.x*W + par.x*.025;
+    const sy=s.y*H + par.y*.025;
+    const r=(s.sz||3.2)*(tw);
+
+    // Outer glow
+    const g=ctx.createRadialGradient(sx,sy,0,sx,sy,r*4.5);
+    g.addColorStop(0,s.color+'bb');
+    g.addColorStop(.35,s.color+'44');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    ctx.arc(sx,sy,r*4.5,0,Math.PI*2);
+    ctx.fill();
+
+    // Core
+    ctx.beginPath();
+    ctx.arc(sx,sy,r,0,Math.PI*2);
+    ctx.fillStyle=s.color;
+    ctx.fill();
+
+    // Hover check
+    const dx=mouse.sx-sx, dy=mouse.sy-sy;
+    if(Math.sqrt(dx*dx+dy*dy)<14){
+      hoveredCStar=s;
+      tip.textContent=s.name+(s.link?' ↗':'');
+      tip.style.left=mouse.sx+'px';
+      tip.style.top=mouse.sy+'px';
+      tip.classList.add('on');
+    }
+  }
+
+  if(!hoveredCStar) tip.classList.remove('on');
+}
+
+// ── PLANET DOM SETUP ──
+function layoutPlanets(){
+  const uni=document.getElementById('universe');
+  uni.innerHTML='';
+  planets=[];
+
+  for(const d of PLANETS){
+    const wrap=document.createElement('div');
+    wrap.className='planet-wrap';
+
+    const planet=document.createElement('div');
+    planet.className='planet';
+    planet.style.cssText=`
+      width:${d.size}px;height:${d.size}px;
+      background:${d.bg};box-shadow:${d.glow};
+    `;
+
+    // Center star rings
+    if(d.isCenter){
+      for(let i=0;i<3;i++){
+        const ring=document.createElement('div');
+        ring.className='star-ring';
+        ring.style.animationDelay=`${i}s`;
+        planet.appendChild(ring);
+      }
+    }
+
+    // Saturn rings
+    if(d.hasRings){
+      [[1.9,.5,'rgba(168,85,247,.5)'],[2.45,1,'rgba(168,85,247,.22)'],[3.0,1.8,'rgba(168,85,247,.1)']].forEach(([sc,del,col])=>{
+        const r=document.createElement('div');
+        r.className='orbit-ring';
+        r.style.cssText=`
+          width:${d.size*sc}px;height:${d.size*sc}px;
+          border:2px solid ${col};
+          animation-delay:${del}s;
+        `;
+        planet.appendChild(r);
+      });
+    }
+
+    const label=document.createElement('div');
+    label.className='planet-label';
+    label.textContent=d.name;
+
+    wrap.appendChild(planet);
+    wrap.appendChild(label);
+    uni.appendChild(wrap);
+
+    const state={data:d,el:wrap,angle:d.angle,floatOff:Math.random()*Math.PI*2,hov:false};
+    planets.push(state);
+
+    wrap.addEventListener('click',e=>{e.stopPropagation();openCard(state)});
+    wrap.addEventListener('mouseenter',()=>{
+      state.hov=true;
+      document.getElementById('cursor').style.width='36px';
+      document.getElementById('cursor').style.height='36px';
+    });
+    wrap.addEventListener('mouseleave',()=>{
+      state.hov=false;
+      document.getElementById('cursor').style.width='18px';
+      document.getElementById('cursor').style.height='18px';
+    });
+  }
+}
+
+// ── PLANET UPDATE ──
+function updatePlanets(){
+  for(const p of planets){
+    const d=p.data;
+    let x,y,scl=1;
+
+    if(d.isCenter){
+      x=cx+par.x*.06;
+      y=cy+par.y*.06+Math.sin(t*.0009+p.floatOff)*7;
+      // pulsing glow
+      const pulse=Math.sin(t*.0018)*.15+1;
+      p.el.querySelector('.planet').style.boxShadow=
+        `0 0 ${55*pulse}px rgba(255,200,0,.95),
+         0 0 ${110*pulse}px rgba(255,150,0,.5),
+         0 0 ${170*pulse}px rgba(255,80,0,.2)`;
+    } else {
+      p.angle+=d.speed;
+      const cosA=Math.cos(p.angle), sinA=Math.sin(p.angle);
+      x=cx+cosA*d.orbitR+par.x*.07;
+      y=cy+sinA*d.orbitR*.42+par.y*.07;
+      const floatY=Math.sin(t*.001+p.floatOff)*9;
+      y+=floatY;
+      // Depth scale based on sin(angle)
+      scl=.76+(sinA*.5+.5)*.28;
+      p.el.style.zIndex=sinA>0?12:4;
+    }
+
+    p.el.style.left=x+'px';
+    p.el.style.top=y+'px';
+    const hScale=p.hov?1.13:1;
+    p.el.querySelector('.planet').style.transform=`scale(${scl*hScale})`;
+  }
+}
+
+// ── CARD ──
+function openCard(p){
+  if(cardOpen) return;
+  cardOpen=true;
+  const d=p.data;
+  document.getElementById('cardOrb').style.cssText=`
+    width:68px;height:68px;border-radius:50%;
+    background:${d.bg};
+    box-shadow:${d.glow};
+    --card-glow:${d.glowColor};
+    margin-bottom:28px;
+  `;
+  document.getElementById('cardEye').textContent=d.eyebrow;
+  document.getElementById('cardTitle').textContent=d.name;
+  document.getElementById('cardDesc').textContent=d.desc;
+  const cl=document.getElementById('cardLinks');
+  cl.innerHTML='';
+  for(const l of d.links){
+    const a=document.createElement('a');
+    a.href=l.url;a.target='_blank';a.rel='noopener';
+    a.className='clink '+(l.primary?'primary':'secondary');
+    a.textContent=l.label;cl.appendChild(a);
+  }
+  document.getElementById('cardOverlay').classList.add('on');
+  clickSound();
+}
+function closeCard(){
+  document.getElementById('cardOverlay').classList.remove('on');
+  setTimeout(()=>cardOpen=false,500);
+}
+function handleOverlayClick(e){
+  if(e.target===document.getElementById('cardOverlay')) closeCard();
+}
+
+// ── STAR MODAL ──
+const COLORS=['#ffffff','#a78bfa','#f472b6','#60a5fa','#34d399','#fbbf24','#fb923c','#f87171'];
+function initColors(){
+  const row=document.getElementById('colorRow');
+  COLORS.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='col-dot'+(i===0?' sel':'');
+    d.style.background=c;
+    d.onclick=()=>{
+      document.querySelectorAll('.col-dot').forEach(el=>el.classList.remove('sel'));
+      d.classList.add('sel');selColor=c;
+    };
+    row.appendChild(d);
+  });
+}
+function openModal(){document.getElementById('starModal').classList.add('on')}
+function closeModal(){document.getElementById('starModal').classList.remove('on')}
+function handleModalClick(e){if(e.target===document.getElementById('starModal'))closeModal()}
+
+async function submitStar(){
+  const name=document.getElementById('mName').value.trim();
+  const link=document.getElementById('mLink').value.trim();
+  const btn=document.getElementById('mBtn');
+  if(!name){
+    document.getElementById('mName').style.borderColor='rgba(239,68,68,.6)';
+    setTimeout(()=>document.getElementById('mName').style.borderColor='',1500);
+    return;
+  }
+  btn.disabled=true;btn.textContent='Launching...';
+  const x=.04+Math.random()*.92, y=.04+Math.random()*.88;
+  try{
+    const res=await fetch(`${SB_URL}/rest/v1/stars`,{
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
+      body:JSON.stringify({name,link:link||null,color:selColor,x,y})
+    });
+    if(res.ok){
+      const [s]=await res.json();
+      communityStars.push({...s,ph:Math.random()*Math.PI*2,sz:3.8});
+      updateCount();
+      closeModal();
+      document.getElementById('mName').value='';
+      document.getElementById('mLink').value='';
+      btn.textContent='✦ Star Launched!';
+      setTimeout(()=>{btn.textContent='Launch My Star 🚀';btn.disabled=false},2500);
+      clickSound();
+    } else {
+      btn.textContent='Error — try again';btn.disabled=false;
+    }
+  } catch(e){
+    btn.textContent='Error — try again';btn.disabled=false;
+  }
+}
+
+async function fetchStars(){
+  try{
+    const res=await fetch(`${SB_URL}/rest/v1/stars?select=*&limit=500`,{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    if(!res.ok) return;
+    const data=await res.json();
+    communityStars=data.map(s=>({...s,ph:Math.random()*Math.PI*2,sz:2.4+Math.random()*2}));
+    updateCount();
+  } catch(e){console.log('Stars unavailable')}
+}
+function updateCount(){
+  document.getElementById('countNum').textContent=`${communityStars.length} STARS`;
+}
+
+// ── SOUND (Web Audio API) ──
+function initAudio(){
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  masterGain=audioCtx.createGain();
+  masterGain.gain.setValueAtTime(0,audioCtx.currentTime);
+  masterGain.connect(audioCtx.destination);
+
+  // Low drone 55Hz
+  const o1=audioCtx.createOscillator();
+  o1.type='sine';o1.frequency.value=55;
+  const g1=audioCtx.createGain();g1.gain.value=.18;
+  o1.connect(g1);g1.connect(masterGain);o1.start();
+
+  // Harmonic 110Hz
+  const o2=audioCtx.createOscillator();
+  o2.type='sine';o2.frequency.value=110;
+  const g2=audioCtx.createGain();g2.gain.value=.07;
+  o2.connect(g2);g2.connect(masterGain);o2.start();
+
+  // High shimmer 220Hz
+  const o3=audioCtx.createOscillator();
+  o3.type='sine';o3.frequency.value=220;
+  const g3=audioCtx.createGain();g3.gain.value=.03;
+  o3.connect(g3);g3.connect(masterGain);o3.start();
+
+  // Filtered noise (space texture)
+  const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*3,audioCtx.sampleRate);
+  const dat=buf.getChannelData(0);
+  for(let i=0;i<dat.length;i++) dat[i]=(Math.random()*2-1)*.018;
+  const noise=audioCtx.createBufferSource();
+  noise.buffer=buf;noise.loop=true;
+  const filt=audioCtx.createBiquadFilter();
+  filt.type='lowpass';filt.frequency.value=500;
+  noise.connect(filt);filt.connect(masterGain);noise.start();
+}
+
+function toggleSound(){
+  if(!audioCtx) initAudio();
+  soundOn=!soundOn;
+  masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+  masterGain.gain.linearRampToValueAtTime(soundOn?.38:0,audioCtx.currentTime+1.8);
+  document.getElementById('soundBtn').textContent=soundOn?'🔊':'🔇';
+  if(audioCtx.state==='suspended') audioCtx.resume();
+}
+
+function clickSound(){
+  if(!audioCtx||!soundOn) return;
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.type='sine';o.frequency.setValueAtTime(920,audioCtx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(460,audioCtx.currentTime+.25);
+  g.gain.setValueAtTime(.12,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.25);
+  o.connect(g);g.connect(audioCtx.destination);
+  o.start();o.stop(audioCtx.currentTime+.25);
+}
+
+// ── CURSOR ──
+const curEl=document.getElementById('cursor');
+const dotEl=document.getElementById('cursorDot');
+let trailX=0,trailY=0;
+
+document.addEventListener('mousemove',e=>{
+  mouse.x=e.clientX;mouse.y=e.clientY;
+  curEl.style.left=e.clientX+'px';curEl.style.top=e.clientY+'px';
+  // Smooth dot via CSS transition
+  dotEl.style.left=e.clientX+'px';dotEl.style.top=e.clientY+'px';
+});
+
+document.addEventListener('click',()=>{
+  curEl.style.transform='translate(-50%,-50%) scale(.65)';
+  setTimeout(()=>curEl.style.transform='translate(-50%,-50%) scale(1)',180);
+});
+
+// Community star click
+canvas.addEventListener('click',()=>{
+  if(hoveredCStar?.link) window.open(hoveredCStar.link,'_blank');
+});
+
+// ── MAIN LOOP ──
+function loop(ts){
+  raf=requestAnimationFrame(loop);
+  t=ts;
+
+  // Smooth mouse tracking for parallax
+  mouse.sx+=(mouse.x-mouse.sx)*.09;
+  mouse.sy+=(mouse.y-mouse.sy)*.09;
+  par.x+=(mouse.sx-W/2-par.x)*.038;
+  par.y+=(mouse.sy-H/2-par.y)*.038;
+
+  // Draw space
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#020209';
+  ctx.fillRect(0,0,W,H);
+  drawNebula();
+  drawStars();
+  drawCommunityStars();
+  drawShoot();
+  tryShoot();
+
+  // Update planets
+  updatePlanets();
+}
+
+// ── CINEMATIC INTRO ──
+async function boot(){
+  resize();
+  layoutPlanets();
+  initColors();
+  nextShoot=Date.now()+rnd(18000,32000);
+
+  // Start render immediately (stars appear as intro shows)
+  requestAnimationFrame(loop);
+
+  // Phase 1: Show intro for 2s
+  await wait(2200);
+
+  // Phase 2: Fade out intro
+  document.getElementById('intro').classList.add('out');
+
+  await wait(900);
+
+  // Phase 3: Reveal universe
+  document.getElementById('universe').classList.add('on');
+
+  // Phase 4: Bring in UI
+  await wait(1200);
+  document.getElementById('nav').classList.add('on');
+
+  await wait(400);
+  document.getElementById('addStarBtn').classList.add('on');
+  document.getElementById('starCount').classList.add('on');
+
+  await wait(800);
+  document.getElementById('intro').remove();
+
+  // Phase 5: Load community stars
+  fetchStars();
+}
+
+// ── UTILS ──
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+function rnd(a,b){return Math.random()*(b-a)+a}
+
+// ── TAB VISIBILITY ──
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+    cancelAnimationFrame(raf);
+    if(audioCtx&&soundOn) masterGain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.5);
+  } else {
+    requestAnimationFrame(loop);
+    if(audioCtx&&soundOn) masterGain.gain.linearRampToValueAtTime(.38,audioCtx.currentTime+.5);
+  }
+});
+
+// ── MOBILE TOUCH ──
+document.addEventListener('touchmove',e=>{
+  mouse.x=e.touches[0].clientX;
+  mouse.y=e.touches[0].clientY;
+},{passive:true});
+document.addEventListener('touchstart',e=>{
+  mouse.x=e.touches[0].clientX;
+  mouse.y=e.touches[0].clientY;
+},{passive:true});
+
+// ── KEYBOARD ESC ──
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeCard();closeModal()}
+});
+
+// ── GO ──
+window.addEventListener('load',boot);
+</script>
+</body>
+</html>
