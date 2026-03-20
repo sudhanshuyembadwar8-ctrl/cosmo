@@ -2,7 +2,7 @@
 
 > A full-screen interactive universe where projects are planets and anyone in the world can add their star.
 
-🌐 **Live →** https://cosmos-sudhanshu.vercel.app
+🌐 **Live →** cosmo-steel.vercel.app
 
 ---
 
